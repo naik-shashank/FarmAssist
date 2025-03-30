@@ -12,14 +12,13 @@ const redIcon = new L.Icon({
   popupAnchor: [0, -35],
 });
 
-// Component to update map center dynamically
 const ChangeMapView = ({ position }) => {
   const map = useMap();
   map.setView(position, 12);
   return null;
 };
 
-const SearchBox = ({ setFullAddress, setPosition }) => {
+const SearchBox = ({ setFullAddress, setPosition, setWeather }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
 
@@ -40,11 +39,38 @@ const SearchBox = ({ setFullAddress, setPosition }) => {
     }
   };
 
-  const handleSelect = (place) => {
+  const handleSelect = async (place) => {
     setQuery(place.display_name);
     setFullAddress(place.display_name);
     setPosition([parseFloat(place.lat), parseFloat(place.lon)]);
     setSuggestions([]);
+    
+    // Fetch lat/lng-based weather data
+    try {
+      const geoResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
+        params: {
+          address: place.display_name,
+          key: "AIzaSyDyFsKc7zgLnTch-TLea1epPV09EZ920uA",
+        },
+      });
+      const { lat, lng } = geoResponse.data.results[0].geometry.location;
+      
+      const weatherResponse = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
+        params: {
+          lat,
+          lon: lng,
+          appid: "7dc5c9875aebd7b0151a5ecd46bdd1e9",
+          units: "metric",
+        },
+      });
+
+      setWeather({
+        temperature: weatherResponse.data.main.temp,
+        humidity: weatherResponse.data.main.humidity,
+      });
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+    }
   };
 
   return (
@@ -60,8 +86,7 @@ const SearchBox = ({ setFullAddress, setPosition }) => {
         style={{ width: "100%", padding: "10px", borderRadius: "8px", outline: "none" }}
       />
       {suggestions.length > 0 && (
-        <ul
-          style={{ position: "absolute", width: "100%", background: "white", listStyle: "none", padding: "5px", borderRadius: "8px", zIndex: 1000 }}>
+        <ul style={{ position: "absolute", width: "100%", background: "white", listStyle: "none", padding: "5px", borderRadius: "8px", zIndex: 1000 }}>
           {suggestions.map((place) => (
             <li key={place.place_id} onClick={() => handleSelect(place)}
                 style={{ padding: "10px", cursor: "pointer" }}>{place.display_name}</li>
@@ -75,6 +100,9 @@ const SearchBox = ({ setFullAddress, setPosition }) => {
 const MapCropPrediction = () => {
   const [fullAddress, setFullAddress] = useState("");
   const [position, setPosition] = useState([12.9716, 77.5946]);
+  const [weather, setWeather] = useState({ temperature: null, humidity: null });
+  const [ph, setPh] = useState("");
+  const [rainfall, setRainfall] = useState("");
   const [prediction, setPrediction] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,10 +116,10 @@ const MapCropPrediction = () => {
         N: 50.0,
         P: 40.0,
         K: 30.0,
-        temperature: 25.0,
-        humidity: 60.0,
-        ph: 6.5,
-        rainfall: 200,
+        temperature: weather.temperature,
+        humidity: weather.humidity,
+        ph: parseFloat(ph),
+        rainfall: parseFloat(rainfall),
       });
 
       if (!response.data.recommended_crops) {
@@ -107,10 +135,9 @@ const MapCropPrediction = () => {
 
   return (
     <div className="flex gap-6 p-6 bg-gray-100 dark:bg-gray-900 rounded-lg">
-      {/* Map Section */}
       <div className="w-1/2 bg-white p-4 rounded-lg shadow-lg">
-        <h2 className="text-lg font-semibold mb-3 text-gray-800">📍 Search Location</h2>
-        <SearchBox setFullAddress={setFullAddress} setPosition={setPosition} />
+        <h2 className="text-lg font-semibold mb-3">📍 Search Location</h2>
+        <SearchBox setFullAddress={setFullAddress} setPosition={setPosition} setWeather={setWeather} />
         <MapContainer center={position} zoom={12} style={{ height: "350px", borderRadius: "8px" }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ChangeMapView position={position} />
@@ -118,31 +145,20 @@ const MapCropPrediction = () => {
             <Popup>{fullAddress || "Selected Location"}</Popup>
           </Marker>
         </MapContainer>
+        <input type="number" placeholder="pH Level" value={ph} onChange={(e) => setPh(e.target.value)} className="w-full p-2 mt-2 border rounded" />
+        <input type="number" placeholder="Rainfall (mm)" value={rainfall} onChange={(e) => setRainfall(e.target.value)} className="w-full p-2 mt-2 border rounded" />
       </div>
 
-      {/* Prediction Section */}
       <div className="w-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800">🌾 Crop Prediction</h2>
-        <p className="text-gray-600 mb-4">Location: {fullAddress || "Select a place on the map"}</p>
-        <button
-          onClick={handlePredict}
-          className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-          disabled={loading}
-        >
+        <h2 className="text-xl font-semibold mb-4">🌾 Crop Prediction</h2>
+        <p className="mb-4">Location: {fullAddress || "Select a place on the map"}</p>
+        <button onClick={handlePredict} className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition" disabled={loading}>
           {loading ? "Predicting..." : "Predict Crop"}
         </button>
-
         {error && <p className="text-red-500 mt-4">{error}</p>}
-        {prediction.length > 0 && (
-          <div className="mt-6 p-4 bg-green-100 rounded-lg">
-            <h3 className="text-lg font-semibold text-green-700">Recommended Crops:</h3>
-            <div className="text-lg text-green-900 font-bold flex flex-wrap justify-center gap-3 mt-2">
-              {prediction.map((crop, index) => (
-                <span key={index} className="px-4 py-2 bg-green-200 rounded-lg">{crop}</span>
-              ))}
-            </div>
-          </div>
-        )}
+        {prediction.length > 0 && prediction.map((crop, index) => (
+          <div key={index} className="p-2 bg-green-200 rounded mt-2">{crop}</div>
+        ))}
       </div>
     </div>
   );
