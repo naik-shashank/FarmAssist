@@ -1,137 +1,151 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import axios from "axios";
 
-const PredictCropComponent = () => {
+// Custom Red Location Icon
+const redIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/128/684/684908.png",
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
+  popupAnchor: [0, -35],
+});
+
+// Component to update map center dynamically
+const ChangeMapView = ({ position }) => {
+  const map = useMap();
+  map.setView(position, 12);
+  return null;
+};
+
+const SearchBox = ({ setFullAddress, setPosition }) => {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+
+  const fetchSuggestions = async (input) => {
+    if (!input) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${input}`
+      );
+      const data = await response.json();
+      setSuggestions(data);
+    } catch (error) {
+      console.error("Error fetching location:", error);
+      setSuggestions([]);
+    }
+  };
+
+  const handleSelect = (place) => {
+    setQuery(place.display_name);
+    setFullAddress(place.display_name);
+    setPosition([parseFloat(place.lat), parseFloat(place.lon)]);
+    setSuggestions([]);
+  };
+
+  return (
+    <div style={{ position: "relative", marginBottom: "10px" }}>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          fetchSuggestions(e.target.value);
+        }}
+        placeholder="🔍 Search for a location..."
+        style={{ width: "100%", padding: "10px", borderRadius: "8px", outline: "none" }}
+      />
+      {suggestions.length > 0 && (
+        <ul
+          style={{ position: "absolute", width: "100%", background: "white", listStyle: "none", padding: "5px", borderRadius: "8px", zIndex: 1000 }}>
+          {suggestions.map((place) => (
+            <li key={place.place_id} onClick={() => handleSelect(place)}
+                style={{ padding: "10px", cursor: "pointer" }}>{place.display_name}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+const MapCropPrediction = () => {
+  const [fullAddress, setFullAddress] = useState("");
+  const [position, setPosition] = useState([12.9716, 77.5946]);
   const [prediction, setPrediction] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [data, setData] = useState({
-    address: "",
-    ph: "",
-    rainfall: "",
-  });
-
-  const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
-  };
 
   const handlePredict = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const geoResponse = await axios.get(
-        "https://maps.googleapis.com/maps/api/geocode/json",
-        {
-          params: {
-            address: data.address,
-            key: "AIzaSyDyFsKc7zgLnTch-TLea1epPV09EZ920uA",
-          },
-        }
-      );
-
-      if (!geoResponse.data.results.length) {
-        throw new Error("Location not found. Please enter a valid address.");
-      }
-
-      const location = geoResponse.data.results[0].geometry.location;
-      const { lat, lng } = location;
-
-      const weatherResponse = await axios.get(
-        `https://api.openweathermap.org/data/2.5/weather`,
-        {
-          params: {
-            lat: lat,
-            lon: lng,
-            appid: "7dc5c9875aebd7b0151a5ecd46bdd1e9",
-            units: "metric",
-          },
-        }
-      );
-
-      const { temp, humidity } = weatherResponse.data.main;
-
       const response = await axios.post("http://127.0.0.1:8001/predict", {
         N: 50.0,
         P: 40.0,
         K: 30.0,
-        temperature: parseFloat(temp),
-        humidity: parseFloat(humidity),
-        ph: parseFloat(data.ph),
-        rainfall: parseFloat(data.rainfall),
+        temperature: 25.0,
+        humidity: 60.0,
+        ph: 6.5,
+        rainfall: 200,
       });
 
       if (!response.data.recommended_crops) {
         throw new Error("No crop recommendations received from API.");
       }
-
       setPrediction(response.data.recommended_crops);
     } catch (err) {
-      setError(
-        err.message || "Failed to fetch prediction. Ensure the API is running."
-      );
+      setError(err.message || "Failed to fetch prediction. Ensure the API is running.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg text-center ">
-      <h2 className="text-xl font-semibold mb-4">Crop Prediction</h2>
-
-      <div className="flex justify-center items-center flex-col gap-5">
-        <input
-          type="text"
-          name="address"
-          value={data.address}
-          onChange={handleChange}
-          placeholder="Address"
-          className="p-3 w-[30rem] rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none"
-        />
-        <input
-          type="number"
-          name="ph"
-          value={data.ph}
-          onChange={handleChange}
-          placeholder="pH"
-          className="p-3 w-[30rem] rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none"
-        />
-        <input
-          type="number"
-          name="rainfall"
-          value={data.rainfall}
-          onChange={handleChange}
-          placeholder="Rainfall (mm)"
-          className="p-3 w-[30rem] rounded-lg dark:bg-gray-800 dark:text-white focus:outline-none"
-        />
+    <div className="flex gap-6 p-6 bg-gray-100 dark:bg-gray-900 rounded-lg">
+      {/* Map Section */}
+      <div className="w-1/2 bg-white p-4 rounded-lg shadow-lg">
+        <h2 className="text-lg font-semibold mb-3 text-gray-800">📍 Search Location</h2>
+        <SearchBox setFullAddress={setFullAddress} setPosition={setPosition} />
+        <MapContainer center={position} zoom={12} style={{ height: "350px", borderRadius: "8px" }}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <ChangeMapView position={position} />
+          <Marker position={position} icon={redIcon}>
+            <Popup>{fullAddress || "Selected Location"}</Popup>
+          </Marker>
+        </MapContainer>
       </div>
 
-      <button
-        onClick={handlePredict}
-        className="px-6 w-[30rem] py-3 mt-5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:opacity-90 transition-transform transform hover:scale-105"
-        disabled={loading}
-      >
-        {loading ? "Predicting..." : "Predict Crop"}
-      </button>
+      {/* Prediction Section */}
+      <div className="w-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">🌾 Crop Prediction</h2>
+        <p className="text-gray-600 mb-4">Location: {fullAddress || "Select a place on the map"}</p>
+        <button
+          onClick={handlePredict}
+          className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+          disabled={loading}
+        >
+          {loading ? "Predicting..." : "Predict Crop"}
+        </button>
 
-      {error && <p className="text-red-500 mt-4">{error}</p>}
-      {prediction.length > 0 && (
-        <div className="mt-6 p-6 bg-gray-200 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white text-center">
-          <h3 className="text-lg font-semibold">Recommended Crops:</h3>
-          <div className="text-xl text-green-600 dark:text-green-400 font-bold flex flex-wrap justify-center gap-4 mt-2">
-            {prediction.map((crop, index) => (
-              <span
-                key={index}
-                className="px-4 py-2 bg-green-100 dark:bg-green-900 rounded-lg"
-              >
-                {crop}
-              </span>
-            ))}
+        {error && <p className="text-red-500 mt-4">{error}</p>}
+        {prediction.length > 0 && (
+          <div className="mt-6 p-4 bg-green-100 rounded-lg">
+            <h3 className="text-lg font-semibold text-green-700">Recommended Crops:</h3>
+            <div className="text-lg text-green-900 font-bold flex flex-wrap justify-center gap-3 mt-2">
+              {prediction.map((crop, index) => (
+                <span key={index} className="px-4 py-2 bg-green-200 rounded-lg">{crop}</span>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
-export default PredictCropComponent;
+export default MapCropPrediction;
