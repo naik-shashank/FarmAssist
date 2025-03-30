@@ -23,7 +23,7 @@ app.use(cors());
 // If you want to allow only your frontend:
 app.use(
   cors({
-    origin: "http://localhost:3000", // Change this to your frontend URL in production
+    origin: "*", // Change this to your frontend URL in production
     methods: "GET,POST,PUT,DELETE",
     allowedHeaders: "Content-Type,Authorization",
   })

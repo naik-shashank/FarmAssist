@@ -45,7 +45,6 @@ const SearchBox = ({ setFullAddress, setPosition, setWeather }) => {
     setPosition([parseFloat(place.lat), parseFloat(place.lon)]);
     setSuggestions([]);
     
-    // Fetch lat/lng-based weather data
     try {
       const geoResponse = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
         params: {
@@ -74,7 +73,7 @@ const SearchBox = ({ setFullAddress, setPosition, setWeather }) => {
   };
 
   return (
-    <div style={{ position: "relative", marginBottom: "10px" }}>
+    <div className="relative mb-2 z-20">
       <input
         type="text"
         value={query}
@@ -83,13 +82,15 @@ const SearchBox = ({ setFullAddress, setPosition, setWeather }) => {
           fetchSuggestions(e.target.value);
         }}
         placeholder="🔍 Search for a location..."
-        style={{ width: "100%", padding: "10px", borderRadius: "8px", outline: "none" }}
+        className="w-full p-2 rounded-md outline-none bg-white dark:bg-gray-800 text-black dark:text-white border dark:border-gray-600"
       />
       {suggestions.length > 0 && (
-        <ul style={{ position: "absolute", width: "100%", background: "white", listStyle: "none", padding: "5px", borderRadius: "8px", zIndex: 1000 }}>
+        <ul className="absolute w-full bg-white dark:bg-gray-800 list-none p-2 rounded-md z-50 shadow-md top-full">
           {suggestions.map((place) => (
             <li key={place.place_id} onClick={() => handleSelect(place)}
-                style={{ padding: "10px", cursor: "pointer" }}>{place.display_name}</li>
+                className="p-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 text-black dark:text-white">
+              {place.display_name}
+            </li>
           ))}
         </ul>
       )}
@@ -135,29 +136,29 @@ const MapCropPrediction = () => {
 
   return (
     <div className="flex gap-6 p-6 bg-gray-100 dark:bg-gray-900 rounded-lg">
-      <div className="w-1/2 bg-white p-4 rounded-lg shadow-lg">
-        <h2 className="text-lg font-semibold mb-3">📍 Search Location</h2>
+      <div className="w-1/2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg relative z-10">
+        <h2 className="text-lg font-semibold mb-3 text-black dark:text-white">📍 Search Location</h2>
         <SearchBox setFullAddress={setFullAddress} setPosition={setPosition} setWeather={setWeather} />
-        <MapContainer center={position} zoom={12} style={{ height: "350px", borderRadius: "8px" }}>
+        <MapContainer center={position} zoom={12} style={{ height: "350px", borderRadius: "8px", zIndex: 1 }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ChangeMapView position={position} />
           <Marker position={position} icon={redIcon}>
             <Popup>{fullAddress || "Selected Location"}</Popup>
           </Marker>
         </MapContainer>
-        <input type="number" placeholder="pH Level" value={ph} onChange={(e) => setPh(e.target.value)} className="w-full p-2 mt-2 border rounded" />
-        <input type="number" placeholder="Rainfall (mm)" value={rainfall} onChange={(e) => setRainfall(e.target.value)} className="w-full p-2 mt-2 border rounded" />
+        <input type="number" placeholder="pH Level" value={ph} onChange={(e) => setPh(e.target.value)} className="w-full p-2 mt-2 border rounded bg-white dark:bg-gray-700 text-black dark:text-white" />
+        <input type="number" placeholder="Rainfall (mm)" value={rainfall} onChange={(e) => setRainfall(e.target.value)} className="w-full p-2 mt-2 border rounded bg-white dark:bg-gray-700 text-black dark:text-white" />
       </div>
 
-      <div className="w-1/2 bg-white p-6 rounded-lg shadow-lg text-center">
-        <h2 className="text-xl font-semibold mb-4">🌾 Crop Prediction</h2>
-        <p className="mb-4">Location: {fullAddress || "Select a place on the map"}</p>
+      <div className="w-1/2 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center">
+        <h2 className="text-xl font-semibold mb-4 text-black dark:text-white">🌾 Crop Prediction</h2>
+        <p className="mb-4 text-black dark:text-white">Location: {fullAddress || "Select a place on the map"}</p>
         <button onClick={handlePredict} className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition" disabled={loading}>
           {loading ? "Predicting..." : "Predict Crop"}
         </button>
         {error && <p className="text-red-500 mt-4">{error}</p>}
         {prediction.length > 0 && prediction.map((crop, index) => (
-          <div key={index} className="p-2 bg-green-200 rounded mt-2">{crop}</div>
+          <div key={index} className="p-2 bg-green-200 dark:bg-green-700 rounded mt-2 text-black dark:text-white">{crop}</div>
         ))}
       </div>
     </div>
