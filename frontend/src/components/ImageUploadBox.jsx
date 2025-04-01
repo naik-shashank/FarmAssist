@@ -63,7 +63,7 @@ const Hero = ({ openAuthModal }) => {
       const token = localStorage.getItem("token");
   
       // Make API call
-      const response = await fetch("http://localhost:8000/api/predict", {
+      const response = await fetch("https://farmassist-api.onrender.com/api/predict", {
         method: "POST",
         body: formData,
         headers: {
