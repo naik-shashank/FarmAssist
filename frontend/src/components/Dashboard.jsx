@@ -13,7 +13,7 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch("http://localhost:8000/api/user/dashboard", {
+        const response = await fetch("https://farmassist-api.onrender.com/api/user/dashboard", {
           headers: {
             'Authorization': `Bearer ${token}`
           }
