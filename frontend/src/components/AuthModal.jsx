@@ -38,7 +38,7 @@ const AuthModal = ({ type = "signin", onClose, onLogin }) => {
     setIsLoading(true);
 
     try {
-      let endpoint = "http://localhost:8000/api/user/";
+      let endpoint = "https://farmassist-api.onrender.com/api/user/";
 
       if (type === "signin") {
         endpoint = endpoint + "login";
