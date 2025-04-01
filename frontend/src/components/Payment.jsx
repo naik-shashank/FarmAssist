@@ -69,7 +69,7 @@ const Payment = () => {
       handler: async (response) => {
         try {
           // Save payment details to your backend
-          await axios.post("http://localhost:8000/api/payment/verify", {
+          await axios.post("https://farmassist-api.onrender.com/api/payment/verify", {
             paymentId: response.razorpay_payment_id,
             plan: plan,
             amount: currentPlan.price
