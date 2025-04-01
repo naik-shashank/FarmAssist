@@ -146,7 +146,7 @@ const Payment = () => {
         }, 3000)
       } else {
         // Create RazorPay order
-        const orderResponse = await axios.post("http://localhost:8000/api/payment/orders", {
+        const orderResponse = await axios.post("https://farmassist-api.onrender.com/api/payment/orders", {
           amount: currentPlan.price,
           currency: 'INR' // Or 'INR'
         }, {
