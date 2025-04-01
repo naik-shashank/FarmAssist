@@ -31,7 +31,7 @@ const CodeBlock = ({ language, code }) => {
 const ApiDocs = () => {
   const [activeTab, setActiveTab] = useState("javascript")
 
-  const apiEndpoint = "http://localhost:8000/api/predict/api-key"
+  const apiEndpoint = "https://farmassist-api.onrender.com/api/predict/api-key"
 
   const javascriptCode = `// Using fetch API
 const apiKey = 'YOUR_API_KEY';
