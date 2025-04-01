@@ -44,13 +44,13 @@ function App() {
           <Routes>
             <Route path="/" element={<Hero openAuthModal={openAuthModal} />} />
 
-            <Route element={<PrivateRoute />}>
+             {/* <Route element={<PrivateRoute />}>  */}
               <Route path="/Predict-Image" element={<ImageUploadBox />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/croprec" element={<CropRec />} />
               <Route path="/payment/:plan" element={<Payment />} />
-            </Route>
+            {/* </Route> */}
             
             <Route
               path="/dashboard"
